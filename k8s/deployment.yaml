@@ -15,6 +15,10 @@ spec:
       labels:
         app: model-runner
     spec:
+      # Prevents Kubernetes from injecting <SERVICE>_PORT-style env vars for
+      # every Service in this namespace — one of them (MODEL_RUNNER_PORT)
+      # collides with a variable model-runner reads for its own listen port.
+      enableServiceLinks: false
       containers:
         - name: model-runner
           image: docker/model-runner:latest
