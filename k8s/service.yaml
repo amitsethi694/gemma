@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: model-runner
+  namespace: gemma4
+  labels:
+    app: model-runner
+spec:
+  type: ClusterIP
+  selector:
+    app: model-runner
+  ports:
+    - name: http
+      port: 80
+      targetPort: 12434

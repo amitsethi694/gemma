@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pull-gemma4
+  namespace: gemma4
+  annotations:
+    # Runs once, automatically, right after ArgoCD syncs the Deployment/Service.
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: pull-gemma4
+          image: curlimages/curl:8.10.1
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              echo "waiting for model-runner service..."
+              until curl -sf http://model-runner.gemma4.svc.cluster.local/models >/dev/null; do
+                sleep 5
+              done
+              echo "pulling ai/gemma4 (this can take a while on first run)..."
+              curl -sf -X POST \
+                http://model-runner.gemma4.svc.cluster.local/models/create \
+                -H "Content-Type: application/json" \
+                -d '{"from": "ai/gemma4"}'
+              echo "done"

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: model-runner-storage
+  namespace: gemma4
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      # ai/gemma4 E2B/E4B variants fit comfortably in 20Gi.
+      # Bump this (and the node's available disk) if you're running the 26B/31B tags.
+      storage: 20Gi
+  # storageClassName: ""   # uncomment and set if your local cluster needs an explicit class

@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: model-runner
+  namespace: gemma4
+  labels:
+    app: model-runner
+spec:
+  replicas: 1   # keep at 1 — the model is loaded into this pod's local storage/memory
+  selector:
+    matchLabels:
+      app: model-runner
+  template:
+    metadata:
+      labels:
+        app: model-runner
+    spec:
+      containers:
+        - name: model-runner
+          image: docker/model-runner:latest
+          ports:
+            - containerPort: 12434
+              name: http
+          volumeMounts:
+            - name: model-storage
+              mountPath: /models        # where pulled model artifacts are cached
+          resources:
+            # Sized for the small ai/gemma4 tags (E2B/E4B) running on CPU.
+            # For 26B/31B tags, raise memory substantially (32Gi+) and consider
+            # adding a GPU (see commented block below).
+            requests:
+              cpu: "1"
+              memory: 4Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+          readinessProbe:
+            httpGet:
+              path: /models
+              port: 12434
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /models
+              port: 12434
+            initialDelaySeconds: 20
+            periodSeconds: 30
+      volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: model-runner-storage
+      # --- GPU nodes only (most local clusters won't have this) ---
+      # resources:
+      #   limits:
+      #     nvidia.com/gpu: 1
+      # nodeSelector:
+      #   accelerator: nvidia
