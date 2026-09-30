@@ -1,62 +1,42 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: model-runner
-  namespace: gemma4
+  name: games
+  namespace: games
   labels:
-    app: model-runner
+    app: games
 spec:
-  replicas: 1   # keep at 1 — the model is loaded into this pod's local storage/memory
+  replicas: 2
   selector:
     matchLabels:
-      app: model-runner
+      app: games
   template:
     metadata:
       labels:
-        app: model-runner
+        app: games
     spec:
-      # Prevents Kubernetes from injecting <SERVICE>_PORT-style env vars for
-      # every Service in this namespace — one of them (MODEL_RUNNER_PORT)
-      # collides with a variable model-runner reads for its own listen port.
-      enableServiceLinks: false
       containers:
-        - name: model-runner
-          image: docker/model-runner:latest
+        - name: games
+          # built and pushed by .github/workflows/build-and-release.yml
+          image: ghcr.io/amitsethi694/test:latest
           ports:
-            - containerPort: 12434
-              name: http
-          volumeMounts:
-            - name: model-storage
-              mountPath: /models        # where pulled model artifacts are cached
+            - containerPort: 80
           resources:
-            # Sized for the small ai/gemma4 tags (E2B/E4B) running on CPU.
-            # For 26B/31B tags, raise memory substantially (32Gi+) and consider
-            # adding a GPU (see commented block below).
             requests:
-              cpu: "1"
-              memory: 4Gi
+              cpu: 50m
+              memory: 64Mi
             limits:
-              cpu: "4"
-              memory: 8Gi
+              cpu: 200m
+              memory: 128Mi
           readinessProbe:
             httpGet:
-              path: /models
-              port: 12434
-            initialDelaySeconds: 10
+              path: /
+              port: 80
+            initialDelaySeconds: 3
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /models
-              port: 12434
-            initialDelaySeconds: 20
-            periodSeconds: 30
-      volumes:
-        - name: model-storage
-          persistentVolumeClaim:
-            claimName: model-runner-storage
-      # --- GPU nodes only (most local clusters won't have this) ---
-      # resources:
-      #   limits:
-      #     nvidia.com/gpu: 1
-      # nodeSelector:
-      #   accelerator: nvidia
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 20

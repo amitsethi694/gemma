@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mini Game Hub</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --cell: #1e293b;
+    --cell-hover: #334155;
+    --accent-x: #38bdf8;
+    --accent-o: #f472b6;
+    --text: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 1rem;
+  }
+  h1 { margin-bottom: 0.25rem; }
+  .screen { display: none; flex-direction: column; align-items: center; }
+  .screen.active { display: flex; }
+
+  /* Menu */
+  #menu-buttons { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; justify-content: center; }
+  .menu-btn {
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 10px;
+    background: var(--cell);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .menu-btn:hover { background: var(--cell-hover); }
+
+  #status { margin-bottom: 1rem; font-size: 1.1rem; min-height: 1.5rem; }
+
+  /* Tic Tac Toe */
+  #ttt-board {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    grid-template-rows: repeat(3, 100px);
+    gap: 8px;
+  }
+  .cell {
+    background: var(--cell);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease;
+  }
+  .cell:hover { background: var(--cell-hover); }
+  .cell.x { color: var(--accent-x); }
+  .cell.o { color: var(--accent-o); }
+
+  /* Memory Match */
+  #memory-board {
+    display: grid;
+    grid-template-columns: repeat(4, 80px);
+    grid-template-rows: repeat(4, 80px);
+    gap: 8px;
+  }
+  .mcard {
+    background: var(--cell);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .mcard.flipped, .mcard.matched { background: var(--cell-hover); }
+  .mcard.matched { opacity: 0.5; cursor: default; }
+
+  button.action {
+    margin-top: 1.5rem;
+    padding: 0.6rem 1.4rem;
+    font-size: 1rem;
+    border: none;
+    border-radius: 6px;
+    background: var(--accent-x);
+    color: #0f172a;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button.action:hover { opacity: 0.9; }
+  button.link {
+    margin-top: 1rem;
+    background: none;
+    border: none;
+    color: var(--text);
+    opacity: 0.7;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  footer { margin-top: 2rem; font-size: 0.75rem; opacity: 0.5; }
+</style>
+</head>
+<body>
+
+  <!-- Menu -->
+  <div id="menu" class="screen active">
+    <h1>Mini Game Hub</h1>
+    <div id="menu-buttons">
+      <button class="menu-btn" onclick="showScreen('ttt')">Tic Tac Toe</button>
+      <button class="menu-btn" onclick="showScreen('memory')">Memory Match</button>
+    </div>
+  </div>
+
+  <!-- Tic Tac Toe -->
+  <div id="ttt" class="screen">
+    <h1>Tic Tac Toe</h1>
+    <div id="status">X's turn</div>
+    <div id="ttt-board"></div>
+    <button class="action" onclick="tttInit()">Reset</button>
+    <button class="link" onclick="showScreen('menu')">&larr; Back to menu</button>
+  </div>
+
+  <!-- Memory Match -->
+  <div id="memory" class="screen">
+    <h1>Memory Match</h1>
+    <div id="memory-status">Find all the pairs</div>
+    <div id="memory-board"></div>
+    <button class="action" onclick="memoryInit()">Reset</button>
+    <button class="link" onclick="showScreen('menu')">&larr; Back to menu</button>
+  </div>
+
+  <footer>Running on Kubernetes, deployed via ArgoCD</footer>
+
+<script>
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if (id === 'ttt') tttInit();
+    if (id === 'memory') memoryInit();
+  }
+
+  /* ---------- Tic Tac Toe ---------- */
+  const tttBoardEl = document.getElementById('ttt-board');
+  const statusEl = document.getElementById('status');
+  let tttBoard, tttCurrent, tttActive;
+  const tttWins = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  function tttInit() {
+    tttBoard = Array(9).fill(null);
+    tttCurrent = 'X';
+    tttActive = true;
+    statusEl.textContent = `${tttCurrent}'s turn`;
+    tttRender();
+  }
+
+  function tttRender() {
+    tttBoardEl.innerHTML = '';
+    tttBoard.forEach((val, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'cell' + (val ? ' ' + val.toLowerCase() : '');
+      cell.textContent = val || '';
+      cell.addEventListener('click', () => tttMove(i));
+      tttBoardEl.appendChild(cell);
+    });
+  }
+
+  function tttMove(i) {
+    if (!tttActive || tttBoard[i]) return;
+    tttBoard[i] = tttCurrent;
+    const winner = tttCheckWinner();
+    if (winner) {
+      statusEl.textContent = `${winner} wins!`;
+      tttActive = false;
+    } else if (tttBoard.every(c => c)) {
+      statusEl.textContent = "It's a draw!";
+      tttActive = false;
+    } else {
+      tttCurrent = tttCurrent === 'X' ? 'O' : 'X';
+      statusEl.textContent = `${tttCurrent}'s turn`;
+    }
+    tttRender();
+  }
+
+  function tttCheckWinner() {
+    for (const [a,b,c] of tttWins) {
+      if (tttBoard[a] && tttBoard[a] === tttBoard[b] && tttBoard[a] === tttBoard[c]) {
+        return tttBoard[a];
+      }
+    }
+    return null;
+  }
+
+  /* ---------- Memory Match ---------- */
+  const memoryBoardEl = document.getElementById('memory-board');
+  const memoryStatusEl = document.getElementById('memory-status');
+  const emojis = ['🐶','🐱','🐵','🦊','🐼','🐸','🐯','🦁'];
+  let memoryCards, flipped, matchedCount, lock;
+
+  function memoryInit() {
+    const pairs = [...emojis, ...emojis];
+    memoryCards = pairs
+      .map(v => ({ value: v, flipped: false, matched: false }))
+      .sort(() => Math.random() - 0.5);
+    flipped = [];
+    matchedCount = 0;
+    lock = false;
+    memoryStatusEl.textContent = 'Find all the pairs';
+    memoryRender();
+  }
+
+  function memoryRender() {
+    memoryBoardEl.innerHTML = '';
+    memoryCards.forEach((card, i) => {
+      const el = document.createElement('div');
+      el.className = 'mcard' + (card.flipped ? ' flipped' : '') + (card.matched ? ' matched' : '');
+      el.textContent = (card.flipped || card.matched) ? card.value : '';
+      el.addEventListener('click', () => memoryFlip(i));
+      memoryBoardEl.appendChild(el);
+    });
+  }
+
+  function memoryFlip(i) {
+    if (lock || memoryCards[i].flipped || memoryCards[i].matched) return;
+    memoryCards[i].flipped = true;
+    flipped.push(i);
+    memoryRender();
+
+    if (flipped.length === 2) {
+      lock = true;
+      const [a, b] = flipped;
+      if (memoryCards[a].value === memoryCards[b].value) {
+        memoryCards[a].matched = true;
+        memoryCards[b].matched = true;
+        matchedCount++;
+        flipped = [];
+        lock = false;
+        if (matchedCount === emojis.length) {
+          memoryStatusEl.textContent = 'You found them all! 🎉';
+        }
+        memoryRender();
+      } else {
+        setTimeout(() => {
+          memoryCards[a].flipped = false;
+          memoryCards[b].flipped = false;
+          flipped = [];
+          lock = false;
+          memoryRender();
+        }, 700);
+      }
+    }
+  }
+
+  tttInit();
+  memoryInit();
+</script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: gemma4
+  name: games
   namespace: argocd          # ArgoCD control-plane namespace
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -9,13 +9,13 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/amitsethi694/gemma.git
+    repoURL: https://github.com/amitsethi694/test.git
     targetRevision: main            # branch/tag to track
     path: k8s                       # folder containing the plain manifests
 
   destination:
     server: https://kubernetes.default.svc   # in-cluster; change for a remote cluster
-    namespace: gemma4
+    namespace: games
 
   syncPolicy:
     automated:
