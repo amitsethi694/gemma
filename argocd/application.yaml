@@ -9,7 +9,7 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/amitsethi694/test.git
+    repoURL: https://github.com/amitsethi694/gemma.git
     targetRevision: main            # branch/tag to track
     path: k8s                       # folder containing the plain manifests
 
