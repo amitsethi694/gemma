@@ -18,7 +18,7 @@ spec:
       containers:
         - name: games
           # built and pushed by .github/workflows/build-and-release.yml
-          image: ghcr.io/amitsethi694/test:latest
+          image: ghcr.io/amitsethi694/gemma:latest
           ports:
             - containerPort: 80
           resources:
