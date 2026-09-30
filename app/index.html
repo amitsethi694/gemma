@@ -3,14 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Mini Game Hubs</title>
+<title>Mini Game Hub</title>
 <style>
   :root {
     --bg: #0f172a;
     --cell: #1e293b;
     --cell-hover: #334155;
-    --accent-x: #38bdf8;
-    --accent-o: #f472b6;
+    --accent: #38bdf8;
     --text: #e2e8f0;
   }
   * { box-sizing: border-box; }
@@ -30,7 +29,6 @@
   .screen { display: none; flex-direction: column; align-items: center; }
   .screen.active { display: flex; }
 
-  /* Menu */
   #menu-buttons { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; justify-content: center; }
   .menu-btn {
     padding: 1rem 1.5rem;
@@ -43,50 +41,30 @@
   }
   .menu-btn:hover { background: var(--cell-hover); }
 
-  #status { margin-bottom: 1rem; font-size: 1.1rem; min-height: 1.5rem; }
+  #rps-status, #guess-status { margin-bottom: 1rem; font-size: 1.1rem; min-height: 1.5rem; text-align: center; }
 
-  /* Tic Tac Toe */
-  #ttt-board {
-    display: grid;
-    grid-template-columns: repeat(3, 100px);
-    grid-template-rows: repeat(3, 100px);
-    gap: 8px;
-  }
-  .cell {
+  #rps-choices { display: flex; gap: 1rem; }
+  .rps-btn {
+    font-size: 2.5rem;
+    padding: 1rem 1.25rem;
+    border: none;
+    border-radius: 12px;
     background: var(--cell);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 3rem;
-    font-weight: bold;
     cursor: pointer;
-    user-select: none;
-    transition: background 0.15s ease;
   }
-  .cell:hover { background: var(--cell-hover); }
-  .cell.x { color: var(--accent-x); }
-  .cell.o { color: var(--accent-o); }
+  .rps-btn:hover { background: var(--cell-hover); }
+  #rps-score { margin-top: 1rem; opacity: 0.8; }
 
-  /* Memory Match */
-  #memory-board {
-    display: grid;
-    grid-template-columns: repeat(4, 80px);
-    grid-template-rows: repeat(4, 80px);
-    gap: 8px;
+  #guess-input {
+    font-size: 1.2rem;
+    padding: 0.5rem;
+    width: 100px;
+    text-align: center;
+    border-radius: 6px;
+    border: none;
+    margin-right: 0.5rem;
   }
-  .mcard {
-    background: var(--cell);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    cursor: pointer;
-    user-select: none;
-  }
-  .mcard.flipped, .mcard.matched { background: var(--cell-hover); }
-  .mcard.matched { opacity: 0.5; cursor: default; }
+  #guess-history { margin-top: 1rem; opacity: 0.8; font-size: 0.9rem; text-align: center; }
 
   button.action {
     margin-top: 1.5rem;
@@ -94,7 +72,7 @@
     font-size: 1rem;
     border: none;
     border-radius: 6px;
-    background: var(--accent-x);
+    background: var(--accent);
     color: #0f172a;
     font-weight: 600;
     cursor: pointer;
@@ -114,30 +92,35 @@
 </head>
 <body>
 
-  <!-- Menu -->
   <div id="menu" class="screen active">
     <h1>Mini Game Hub</h1>
     <div id="menu-buttons">
-      <button class="menu-btn" onclick="showScreen('ttt')">Tic Tac Toe</button>
-      <button class="menu-btn" onclick="showScreen('memory')">Memory Match</button>
+      <button class="menu-btn" onclick="showScreen('rps')">Rock Paper Scissors</button>
+      <button class="menu-btn" onclick="showScreen('guess')">Guess the Number</button>
     </div>
   </div>
 
-  <!-- Tic Tac Toe -->
-  <div id="ttt" class="screen">
-    <h1>Tic Tac Toe</h1>
-    <div id="status">X's turn</div>
-    <div id="ttt-board"></div>
-    <button class="action" onclick="tttInit()">Reset</button>
+  <div id="rps" class="screen">
+    <h1>Rock Paper Scissors</h1>
+    <div id="rps-status">Pick one!</div>
+    <div id="rps-choices">
+      <button class="rps-btn" onclick="rpsPlay('rock')">🪨</button>
+      <button class="rps-btn" onclick="rpsPlay('paper')">📄</button>
+      <button class="rps-btn" onclick="rpsPlay('scissors')">✂️</button>
+    </div>
+    <div id="rps-score">Wins: 0 · Losses: 0 · Ties: 0</div>
     <button class="link" onclick="showScreen('menu')">&larr; Back to menu</button>
   </div>
 
-  <!-- Memory Match -->
-  <div id="memory" class="screen">
-    <h1>Memory Match</h1>
-    <div id="memory-status">Find all the pairs</div>
-    <div id="memory-board"></div>
-    <button class="action" onclick="memoryInit()">Reset</button>
+  <div id="guess" class="screen">
+    <h1>Guess the Number</h1>
+    <div id="guess-status">I'm thinking of a number between 1 and 50</div>
+    <div>
+      <input id="guess-input" type="number" min="1" max="50" />
+      <button class="action" onclick="guessTry()" style="margin-top:0;">Guess</button>
+    </div>
+    <div id="guess-history"></div>
+    <button class="action" onclick="guessInit()">New Game</button>
     <button class="link" onclick="showScreen('menu')">&larr; Back to menu</button>
   </div>
 
@@ -147,127 +130,66 @@
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
-    if (id === 'ttt') tttInit();
-    if (id === 'memory') memoryInit();
+    if (id === 'guess') guessInit();
   }
 
-  /* ---------- Tic Tac Toe ---------- */
-  const tttBoardEl = document.getElementById('ttt-board');
-  const statusEl = document.getElementById('status');
-  let tttBoard, tttCurrent, tttActive;
-  const tttWins = [
-    [0,1,2],[3,4,5],[6,7,8],
-    [0,3,6],[1,4,7],[2,5,8],
-    [0,4,8],[2,4,6]
-  ];
+  const rpsStatusEl = document.getElementById('rps-status');
+  const rpsScoreEl = document.getElementById('rps-score');
+  const rpsEmoji = { rock: '🪨', paper: '📄', scissors: '✂️' };
+  let wins = 0, losses = 0, ties = 0;
 
-  function tttInit() {
-    tttBoard = Array(9).fill(null);
-    tttCurrent = 'X';
-    tttActive = true;
-    statusEl.textContent = `${tttCurrent}'s turn`;
-    tttRender();
-  }
-
-  function tttRender() {
-    tttBoardEl.innerHTML = '';
-    tttBoard.forEach((val, i) => {
-      const cell = document.createElement('div');
-      cell.className = 'cell' + (val ? ' ' + val.toLowerCase() : '');
-      cell.textContent = val || '';
-      cell.addEventListener('click', () => tttMove(i));
-      tttBoardEl.appendChild(cell);
-    });
-  }
-
-  function tttMove(i) {
-    if (!tttActive || tttBoard[i]) return;
-    tttBoard[i] = tttCurrent;
-    const winner = tttCheckWinner();
-    if (winner) {
-      statusEl.textContent = `${winner} wins!`;
-      tttActive = false;
-    } else if (tttBoard.every(c => c)) {
-      statusEl.textContent = "It's a draw!";
-      tttActive = false;
+  function rpsPlay(choice) {
+    const options = ['rock', 'paper', 'scissors'];
+    const cpu = options[Math.floor(Math.random() * 3)];
+    let result;
+    if (choice === cpu) {
+      result = "It's a tie!";
+      ties++;
+    } else if (
+      (choice === 'rock' && cpu === 'scissors') ||
+      (choice === 'paper' && cpu === 'rock') ||
+      (choice === 'scissors' && cpu === 'paper')
+    ) {
+      result = 'You win!';
+      wins++;
     } else {
-      tttCurrent = tttCurrent === 'X' ? 'O' : 'X';
-      statusEl.textContent = `${tttCurrent}'s turn`;
+      result = 'You lose!';
+      losses++;
     }
-    tttRender();
+    rpsStatusEl.textContent = `You: ${rpsEmoji[choice]}  vs  CPU: ${rpsEmoji[cpu]}  —  ${result}`;
+    rpsScoreEl.textContent = `Wins: ${wins} · Losses: ${losses} · Ties: ${ties}`;
   }
 
-  function tttCheckWinner() {
-    for (const [a,b,c] of tttWins) {
-      if (tttBoard[a] && tttBoard[a] === tttBoard[b] && tttBoard[a] === tttBoard[c]) {
-        return tttBoard[a];
-      }
+  const guessStatusEl = document.getElementById('guess-status');
+  const guessHistoryEl = document.getElementById('guess-history');
+  const guessInputEl = document.getElementById('guess-input');
+  let secretNumber, guessCount, guessLog;
+
+  function guessInit() {
+    secretNumber = Math.floor(Math.random() * 50) + 1;
+    guessCount = 0;
+    guessLog = [];
+    guessStatusEl.textContent = "I'm thinking of a number between 1 and 50";
+    guessHistoryEl.textContent = '';
+    guessInputEl.value = '';
+  }
+
+  function guessTry() {
+    const val = parseInt(guessInputEl.value, 10);
+    if (!val || val < 1 || val > 50) return;
+    guessCount++;
+    if (val === secretNumber) {
+      guessStatusEl.textContent = `🎉 Correct! It was ${secretNumber}. Guesses: ${guessCount}`;
+    } else {
+      const hint = val < secretNumber ? 'higher' : 'lower';
+      guessLog.push(`${val} → go ${hint}`);
+      guessStatusEl.textContent = `Try again — go ${hint}`;
+      guessHistoryEl.textContent = guessLog.join(' · ');
     }
-    return null;
+    guessInputEl.value = '';
   }
 
-  /* ---------- Memory Match ---------- */
-  const memoryBoardEl = document.getElementById('memory-board');
-  const memoryStatusEl = document.getElementById('memory-status');
-  const emojis = ['🐶','🐱','🐵','🦊','🐼','🐸','🐯','🦁'];
-  let memoryCards, flipped, matchedCount, lock;
-
-  function memoryInit() {
-    const pairs = [...emojis, ...emojis];
-    memoryCards = pairs
-      .map(v => ({ value: v, flipped: false, matched: false }))
-      .sort(() => Math.random() - 0.5);
-    flipped = [];
-    matchedCount = 0;
-    lock = false;
-    memoryStatusEl.textContent = 'Find all the pairs';
-    memoryRender();
-  }
-
-  function memoryRender() {
-    memoryBoardEl.innerHTML = '';
-    memoryCards.forEach((card, i) => {
-      const el = document.createElement('div');
-      el.className = 'mcard' + (card.flipped ? ' flipped' : '') + (card.matched ? ' matched' : '');
-      el.textContent = (card.flipped || card.matched) ? card.value : '';
-      el.addEventListener('click', () => memoryFlip(i));
-      memoryBoardEl.appendChild(el);
-    });
-  }
-
-  function memoryFlip(i) {
-    if (lock || memoryCards[i].flipped || memoryCards[i].matched) return;
-    memoryCards[i].flipped = true;
-    flipped.push(i);
-    memoryRender();
-
-    if (flipped.length === 2) {
-      lock = true;
-      const [a, b] = flipped;
-      if (memoryCards[a].value === memoryCards[b].value) {
-        memoryCards[a].matched = true;
-        memoryCards[b].matched = true;
-        matchedCount++;
-        flipped = [];
-        lock = false;
-        if (matchedCount === emojis.length) {
-          memoryStatusEl.textContent = 'You found them all! 🎉';
-        }
-        memoryRender();
-      } else {
-        setTimeout(() => {
-          memoryCards[a].flipped = false;
-          memoryCards[b].flipped = false;
-          flipped = [];
-          lock = false;
-          memoryRender();
-        }, 700);
-      }
-    }
-  }
-
-  tttInit();
-  memoryInit();
+  guessInit();
 </script>
 </body>
 </html>
